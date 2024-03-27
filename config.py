@@ -11,7 +11,7 @@ MAX_ANSWER_TOKENS = 25  # Ограничить длину ответа GPT
 
 GPT_MODEL = 'yandexgpt-lite'
 
-ADMIN = [1035704315]
+ADMIN = [103570431]
 
 TOKEN_TG = tg
 FOLDER_ID = folder

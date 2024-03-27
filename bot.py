@@ -1,10 +1,10 @@
 import logging
-from telebot import TeleBot
-from telebot.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, Message
+from telebot import TeleBot, types
+from telebot.types import Message
 from config import TOKEN_TG, MAX_TOKENS_IN_SESSION, ADMIN
 from db import create_db, is_limit_users, is_limit_sessions, get_tokens_in_session, is_limit_tokens_in_session, create_user, insert_tokenizer_info, insert_prompt, insert_full_story, get_tokens_info
 from gpt import count_tokens, ask_gpt, create_system_prompt
-from keyboard import markup_menu, hideKeyboard, markup_genre, markup_start
+from keyboard import markup_menu, hideKeyboard, markup_genre, markup_start, markup_help, markup_generate, markup_limit
 from text import Settings
 
 db_file = "db.db"
@@ -22,10 +22,6 @@ logging.basicConfig(
 bot = TeleBot(TOKEN_TG)
 
 user_data = {}
-
-# Меню выбора жанра. Можем заранее сделать, а вложенные - в настройках
-mu_generate = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-mu_generate.add('Конец')
 
 
 def check_user(m):
@@ -52,7 +48,6 @@ def handle_start(m: Message):
         'Если хочешь узнать дополнительную информацию - напиши /help\n'
         'Для того что бы начать сочинять сценарий нужно написать /story', reply_markup=markup_menu)
 
-
 @bot.message_handler(commands=['help'])
 def handle_help(m: Message):
     user_id = m.from_user.id
@@ -60,7 +55,8 @@ def handle_help(m: Message):
     bot.send_message(user_id, 'Доступные команды📘:\n'
         '/tokens - информация по ваш баланс токенов, а так же общие ограничения\n'
         '/story - начало генерации сценария, вам на выбор будут предложенны: жанр, персонажа, антураж\n\n'
-        'Общая информация о боте🤖 - \n', reply_markup=hideKeyboard)
+        'Бот🤖 на GitHub, - <a href="https://github.com/fallan-git/scenario-gpt-bot">клац</a>\n',
+        parse_mode="HTML", reply_markup=markup_help)
 
 
 @bot.message_handler(commands=['debug'])
@@ -77,7 +73,7 @@ def handle_debug(m: Message):
             logging.error(f"{user_id}: cannot send log-file to tg-user")
             bot.send_message(user_id, 'Не могу найти лог-файл', reply_markup=markup_menu)
     else:
-        bot.send_message(user_id, 'У вас нет доступа!', reply_markup=markup_menu)
+        bot.send_message(user_id, 'У вас нет доступа!❌', reply_markup=markup_menu)
 
 @bot.message_handler(commands=['tokens'])
 def handle_tokens(m: Message):
@@ -86,10 +82,7 @@ def handle_tokens(m: Message):
     check_user(m)
     logging.warning(f"{user_id}: Любопытный пользователь спрашивает про токены")
 
-    bot.send_message(
-        user_id,
-        "\n".join(get_tokens_info(db_conn, user_data[user_id])),
-        reply_markup=hideKeyboard)
+    bot.send_message(user_id, "\n".join(get_tokens_info(db_conn, user_data[user_id])), reply_markup=markup_menu)
 
 @bot.message_handler(commands=['story'])
 def handle_settings(m: Message):
@@ -107,14 +100,11 @@ def settings_genre(m: Message):
         user_data[user_id]['genre'] = m.text
         genre = user_data[user_id]['genre']
         characters = list(Settings[genre]['characters'])
-        mu_characters = ReplyKeyboardMarkup(
-            row_width=2,
-            resize_keyboard=True)
-        mu_characters.add(*characters)
-
+        markup_characters = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        markup_characters.add(*characters)
         bot.send_message(
             user_id,
-            'Теперь выбери персонажа', reply_markup=mu_characters)
+            'Теперь выбери персонажа', reply_markup=markup_characters)
         bot.register_next_step_handler(m, settings_characters)
     else:
         bot.send_message(
@@ -133,26 +123,26 @@ def settings_characters(m: Message):
     characters = list(Settings[genre]['characters'])
     entourages = list(Settings[genre]['entourages'])
 
-    mu_characters = ReplyKeyboardMarkup(
+    markup_characters = types.ReplyKeyboardMarkup(
         row_width=2,
         resize_keyboard=True)
-    mu_characters.add(*characters)
+    markup_characters.add(*characters)
 
-    mu_entourages = ReplyKeyboardMarkup(
+    markup_entourages = types.ReplyKeyboardMarkup(
         row_width=2,
         resize_keyboard=True)
-    mu_entourages.add(*entourages)
+    markup_entourages.add(*entourages)
 
     if m.text in characters:
         user_data[user_id]['character'] = m.text
         bot.send_message(
             user_id,
-            'Теперь выбери антураж', reply_markup=mu_entourages)
+            'Теперь выбери антураж', reply_markup=markup_entourages)
         bot.register_next_step_handler(m, settings_entourages)
     else:
         bot.send_message(
             user_id,
-            'Выбери персонажа из списка!', reply_markup=mu_characters)
+            'Выбери персонажа из списка!', reply_markup=markup_characters)
         bot.register_next_step_handler(m, settings_characters)
 
     return
@@ -165,10 +155,10 @@ def settings_entourages(m: Message):
     genre = user_data[user_id]['genre']
     entourages = list(Settings[genre]['entourages'])
 
-    mu_entourages = ReplyKeyboardMarkup(
+    markup_entourages = types.ReplyKeyboardMarkup(
         row_width=2,
         resize_keyboard=True)
-    mu_entourages.add(*entourages)
+    markup_entourages.add(*entourages)
 
     if m.text in entourages:
         user_data[user_id]['entourage'] = m.text
@@ -182,7 +172,7 @@ def settings_entourages(m: Message):
     else:
         bot.send_message(
             user_id,
-            'Выбери из списка!', reply_markup=mu_entourages)
+            'Выбери из списка!', reply_markup=markup_entourages)
         bot.register_next_step_handler(m, settings_entourages)
 
     return
@@ -194,22 +184,20 @@ def handle_generate(m: Message):
     user_id = m.from_user.id
     check_user(m)
 
-    # Нельзя больше заданного количества пользователей
     if is_limit_users(db_conn):
         logging.warning(f"MAX_USERS limit exceeded, user_id: {user_id}")
         bot.send_message(
             user_id,
             'Превышено количество пользователей бота!\n'
-            'Для вас доступен только просмотр статистики токенов: /tokens', reply_markup=hideKeyboard)
+            'Для вас доступен просмотр статистики токенов /tokens, а так информация о боте /help', reply_markup=markup_limit)
         return False
 
-    # Нельзя больше заданного количества сессий на пользователя
     if is_limit_sessions(db_conn, user_id):
         logging.warning(f"MAX_SESSIONS limit exceeded, user_id: {user_id}")
         bot.send_message(
             user_id,
             'Превышено количество сессий на одного пользователя!\n'
-            'Для вас доступен только просмотр статистики токенов: /tokens', reply_markup=hideKeyboard)
+            'Для вас доступен просмотр статистики токенов: /tokens, а так информация о боте /help', reply_markup=markup_limit)
         return False
 
     if ('genre' not in user_data[user_id]
@@ -240,7 +228,7 @@ def handle_generate(m: Message):
                 user_id,
                 'Введи начало задачи (одно-два предложения). '
                 'Бот-сценарист продолжит сюжет. Потом снова ты.\n\n'
-                'Когда надоест - напиши: Конец', reply_markup=mu_generate)
+                'Когда надоест - напиши: Конец', reply_markup=markup_generate)
             bot.register_next_step_handler(m, handle_ask_gpt)
 
         else:
@@ -252,11 +240,7 @@ def handle_generate(m: Message):
             return False
 
 
-# @bot.message_handler(content_types=["text"])
 def handle_ask_gpt(m: Message):
-    """
-    Генерация сценария
-    """
     global user_data, db_conn
     user_id = m.from_user.id
     check_user(m)
@@ -264,7 +248,6 @@ def handle_ask_gpt(m: Message):
     prompt_user_prefix = ("Продолжи описание, но не пиши никакой "
                           "пояснительный текст от себя: ")
 
-    # Если попросил остановить генерацию
     if m.text.lower() == 'конец':
         full_story = ""
         for row in user_data[user_id]['collection']:
@@ -279,14 +262,12 @@ def handle_ask_gpt(m: Message):
         user_data[user_id]['entourage'] = ""
         bot.send_message(
             user_id,
-            f'Конец? Так быстро? ну ок...\n\n'
             f'Вот итоговый текст, получился с помощью бота:\n\n'
             f'{full_story}\n\n'
-            f'Попробуй другие настройки для нового сценария! /story', reply_markup=hideKeyboard)
+            f'Попробуй другие настройки для нового сценария! /story', reply_markup=markup_menu)
         bot.register_next_step_handler(m, handle_settings)
         return False
 
-    # Системный промт этой сессии добавляем в пустую коллекцию
     if not len(user_data[user_id]['collection']):
         prompt_system = create_system_prompt(user_data[user_id])
 
@@ -317,20 +298,17 @@ def handle_ask_gpt(m: Message):
     logging.warning(
         f"Count tokens: user={user_id}, t={t}, content={prompt_user}")
 
-    # Если в сессии не хватает токенов, то извиниться.
     if is_limit_tokens_in_session(db_conn, user_data[user_id], t):
         bot.send_message(
             user_id,
             f'ОШИБКА\n'
             f'Токенайзер насчитал токенов (FAKE): {t}\n'
             f'Это больше, чем осталось токенов в сессии. '
-            f'Попробуйте более короткий запрос.', reply_markup=mu_generate)
+            f'Попробуйте более короткий запрос.', reply_markup=markup_generate)
         logging.warning(f"Not enough tokens ({t}): user_id={user_id}")
         bot.register_next_step_handler(m, handle_ask_gpt)
         return
 
-    # Если токенов в сессии хватает, то:
-    # Запрос пользователя добавляем в коллекцию
     user_data[user_id]['collection'].append(
         {
             "role": "user",
@@ -365,7 +343,7 @@ def handle_ask_gpt(m: Message):
     bot.send_message(
         user_id,
         f'Ответ от GPT:\n\n'
-        f'{res_gpt}', reply_markup=mu_generate)
+        f'{res_gpt}', reply_markup=markup_generate)
     bot.register_next_step_handler(m, handle_ask_gpt)
 
 

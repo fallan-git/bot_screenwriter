@@ -231,13 +231,13 @@ def insert_prompt(db_connection, user, role, content, tokens):
 def get_tokens_info(db_connection, user):
     result = []
 
-    result.append("\nСтандартные переменные:")
+    result.append("\nСтандартные переменные📊:")
     result.append(f"Максимальное количество токенов на весь проект - {MAX_PROJECT_TOKENS}")
-    result.append(f"Максимальное количество пользователей на весь проект{MAX_USERS}")
-    result.append(f"Максимальное количество сессий у пользователя- {MAX_SESSIONS}")
+    result.append(f"Максимальное количество пользователей на весь проект - {MAX_USERS}")
+    result.append(f"Максимальное количество сессий у пользователя - {MAX_SESSIONS}")
     result.append(f"Максимальное количество токенов за сессию пользователя - {MAX_TOKENS_IN_SESSION}")
 
-    result.append("\nВаши значения перменных:")
+    result.append("\nВаши значения перменных📜:")
 
     r = get_tokens_in_session(db_connection, user)
     result.append(f"Токенов в твоей текущей сессии - {r}")
@@ -252,7 +252,7 @@ def get_tokens_info(db_connection, user):
         r = res[0]
     result.append(f"Сессий у тебя - {r}")
 
-    result.append("\nПеременные всех пользователей:")
+    result.append("\nПеременные всех пользователей🗂:")
 
     cursor = db_connection.cursor()
     query = 'SELECT COUNT(DISTINCT user_id) FROM Sessions WHERE 1;'
