@@ -63,14 +63,14 @@ def handle_help(m: Message):
 def handle_debug(m: Message):
     user_id = m.from_user.id
     check_user(m)
-    logging.warning(f"{user_id}: get tokens statistics from TG-bot")
+    logging.warning(f"{user_id} - попытался получить файл с логами")
 
     if user_id in ADMIN:
         try:
             with open(log_file, "rb") as file:
                 bot.send_document(user_id, file, reply_markup=markup_menu)
         except Exception:
-            logging.error(f"{user_id}: cannot send log-file to tg-user")
+            logging.error(f"{user_id} - не удается отправить лог-файл")
             bot.send_message(user_id, 'Не могу найти лог-файл', reply_markup=markup_menu)
     else:
         bot.send_message(user_id, 'У вас нет доступа!❌', reply_markup=markup_menu)
@@ -80,7 +80,7 @@ def handle_tokens(m: Message):
     global db_conn
     user_id = m.from_user.id
     check_user(m)
-    logging.warning(f"{user_id}: Любопытный пользователь спрашивает про токены")
+    logging.warning(f"{user_id} - получил информацию о токенах")
 
     bot.send_message(user_id, "\n".join(get_tokens_info(db_conn, user_data[user_id])), reply_markup=markup_menu)
 
@@ -185,7 +185,7 @@ def handle_generate(m: Message):
     check_user(m)
 
     if is_limit_users(db_conn):
-        logging.warning(f"MAX_USERS limit exceeded, user_id: {user_id}")
+        logging.warning(f"MAX_USERS превышен лимит, user_id - {user_id}")
         bot.send_message(
             user_id,
             'Превышено количество пользователей бота!\n'
@@ -193,7 +193,7 @@ def handle_generate(m: Message):
         return False
 
     if is_limit_sessions(db_conn, user_id):
-        logging.warning(f"MAX_SESSIONS limit exceeded, user_id: {user_id}")
+        logging.warning(f"MAX_SESSIONS превышен лимит, user_id - {user_id}")
         bot.send_message(
             user_id,
             'Превышено количество сессий на одного пользователя!\n'
@@ -220,7 +220,7 @@ def handle_generate(m: Message):
 
         if session_id:
             user_data[user_id]['session_id'] = session_id
-            logging.warning(f"New session id={session_id} "
+            logging.warning(f"Новая сессия, id - {session_id} "
                             f"has been created: user_id={user_id}")
 
             user_data[user_id]['collection'] = []
@@ -232,7 +232,7 @@ def handle_generate(m: Message):
             bot.register_next_step_handler(m, handle_ask_gpt)
 
         else:
-            logging.error(f"Cannot create new session: user_id={user_id}")
+            logging.error(f"Не удается создать новый сеанс, user_id - {user_id}")
             bot.send_message(
                 user_id,
                 'Не получилось создать новую сессию!\n'
@@ -274,14 +274,14 @@ def handle_ask_gpt(m: Message):
         t_system = count_tokens(prompt_system)
         insert_tokenizer_info(db_conn, user_data[user_id],
                               prompt_system, t_system)
-        logging.warning(f"Count tokens: user={user_id}, t_system={t_system}")
+        logging.warning(f"Подсчёт токенов, user - {user_id}, t_system - {t_system}")
         user_data[user_id]['collection'].append(
             {
                 "role": "system",
                 "content": prompt_system,
             }
         )
-        logging.info("Adding system prompt")
+        logging.info("Добавление system prompt")
         insert_prompt(db_conn,
                       user_data[user_id],
                       "system",
@@ -296,7 +296,7 @@ def handle_ask_gpt(m: Message):
     insert_tokenizer_info(db_conn, user_data[user_id],
                           prompt_user, t)
     logging.warning(
-        f"Count tokens: user={user_id}, t={t}, content={prompt_user}")
+        f"CПодсчёт токенов, user - {user_id}, t - {t}, content - {prompt_user}")
 
     if is_limit_tokens_in_session(db_conn, user_data[user_id], t):
         bot.send_message(
@@ -305,7 +305,7 @@ def handle_ask_gpt(m: Message):
             f'Токенайзер насчитал токенов (FAKE): {t}\n'
             f'Это больше, чем осталось токенов в сессии. '
             f'Попробуйте более короткий запрос.', reply_markup=markup_generate)
-        logging.warning(f"Not enough tokens ({t}): user_id={user_id}")
+        logging.warning(f"Недостаточно токенов ({t}), user_id - {user_id}")
         bot.register_next_step_handler(m, handle_ask_gpt)
         return
 
@@ -315,7 +315,7 @@ def handle_ask_gpt(m: Message):
             "content": prompt_user,
         }
     )
-    logging.info("Adding user prompt")
+    logging.info("Добавление user prompt")
     insert_prompt(db_conn,
                   user_data[user_id],
                   "user",
@@ -333,7 +333,7 @@ def handle_ask_gpt(m: Message):
             "content": res_gpt,
         }
     )
-    logging.info("Adding user prompt")
+    logging.info("Добавление user prompt")
     insert_prompt(db_conn,
                   user_data[user_id],
                   "assistant",

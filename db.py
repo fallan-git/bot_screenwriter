@@ -64,7 +64,7 @@ def is_limit_users(db_connection):
     if res is None:
         return False
     print(f"is_limit_users {res[0]}")
-    logging.warning(f"There are {res[0]} distinct users in Sessions")
+    logging.warning(f"Есть {res[0]} отдельных пользователей в сеансах")
 
     return res[0] >= MAX_USERS
 
@@ -79,7 +79,7 @@ def is_limit_sessions(db_connection, user_id):
     if res is None:
         return False
     print(f"is_limit_sessions {res[0]}")
-    logging.warning(f"User {user_id} has {res[0]} session(s)")
+    logging.warning(f"Пользователь {user_id} имеет {res[0]} сессий")
 
     return res[0] >= MAX_SESSIONS
 
@@ -101,8 +101,8 @@ def get_tokens_in_session(db_connection, user):
             return 0
         else:
             print(f"is_limit_tokens_in_session {res[0]}")
-            logging.warning(f"User {user['user_id']} "
-                            f"has {res[0]} tokens in current session")
+            logging.warning(f"Пользователь {user['user_id']} "
+                            f"имеет {res[0]} токенов на текущей сессии")
             return res[0]
     except Exception as e:
         return 0
@@ -117,7 +117,7 @@ def is_limit_tokens_in_session(db_connection, user, t):
 
 def create_user(db_connection, user):
     cursor = db_connection.cursor()
-    logging.warning(f"Insert session for user_id={user['user_id']}:... ")
+    logging.warning(f"Insert сеанс для user_id - {user['user_id']}:... ")
     data = (
         user['user_id'],
         user['genre'],
@@ -165,7 +165,7 @@ def insert_tokenizer_info(db_connection, user, content, tokens):
 
 def insert_full_story(db_connection, user, content):
     cursor = db_connection.cursor()
-    logging.warning(f"Saving full story of user_id={user['user_id']}... ")
+    logging.warning(f"Сохранение полной истории user_id - {user['user_id']}... ")
     data = (
         user['user_id'],
         user['session_id'],
@@ -197,7 +197,7 @@ def get_full_story(db_connection):
         logging.warning(f"get_full_story None = 0")
         return "Нет готовых сочинений"
     else:
-        logging.warning(f"Get Full Story")
+        logging.warning(f"Получение полной истории")
         return res[0]
 
 
@@ -206,7 +206,7 @@ def insert_prompt(db_connection, user, role, content, tokens):
     logging.warning(f"Finding the last prompt session_id={user['session_id']}")
     tokens_prev = get_tokens_in_session(db_connection, user)
 
-    logging.warning(f"Adding prompt user_id={user['user_id']}, role={role}... ")
+    logging.warning(f"Добавление prompt user_id={user['user_id']}, role={role}... ")
     data = (
         user['user_id'],
         user['session_id'],
